@@ -56,7 +56,11 @@ const routes = async (fastify: FastifyInstance) => {
             "message": "Could not give player character."
         });
 
-        return reply.redirect(`/`);
+        // return reply.redirect(`/`);
+        return reply.send({
+            "error": "Success",
+            "message": "Operation successful."
+        });
     })
 
     fastify.get("/give_equipment", async (request: FastifyRequest, reply: FastifyReply) => {
@@ -88,7 +92,11 @@ const routes = async (fastify: FastifyInstance) => {
             "message": "Could not give player equipment."
         });
 
-        return reply.redirect(`/`);
+        // return reply.redirect(`/`);
+        return reply.send({
+            "error": "Success",
+            "message": "Operation successful."
+        });
     })
 }
 

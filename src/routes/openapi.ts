@@ -117,6 +117,22 @@ interface AndroidAuthLoginDeviceBody extends AuthLoginDeviceBody {
 
 const routes = async (fastify: FastifyInstance) => {
 
+    fastify.post("/v3/log/writeSdkBasicLog", (_, reply: FastifyReply) => {
+        reply.status(200).send({
+            'status':200,
+            'desc':'OK',
+            'content':{},
+        })
+    })
+
+    fastify.post("/v3/promotion/checkUrlPromotion", (_, reply: FastifyReply) => {
+        reply.status(200).send({
+            'status':200,
+            'desc':'OK',
+            'content':{},
+        })
+    })
+
     fastify.post("/v3/util/country/get", (_, reply: FastifyReply) => {
         reply.status(200).send({ 
             "country": "en"

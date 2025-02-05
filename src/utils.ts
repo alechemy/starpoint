@@ -115,7 +115,7 @@ export function generateDataHeaders(
     }
 
     if (customValues.viewer_id && sessionWantForceUpdate.has(customValues.viewer_id)) {
-        headers.force_update = true;
+        headers.servertime = 0; // ???? // force update field seems not work, so we set servertime to 0 to force update
         sessionWantForceUpdate.delete(customValues.viewer_id);
     }
 

@@ -75,7 +75,7 @@ fastify.setNotFoundHandler((request, reply) => {
 
 // server error
 fastify.setErrorHandler((error, request, reply) => {
-    console.error(`[500] ${request.url} ${request.body}`)
+    console.error(`[500] ${request.url} ${JSON.stringify(request.body)}`)
     console.error(error)
     reply.status(500).send({ "error": "Internal Server Error" })
 })

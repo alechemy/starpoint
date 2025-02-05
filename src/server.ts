@@ -69,13 +69,13 @@ fastify.addHook('onSend', (_, reply, payload, done) => {
 // error handling
 // not found
 fastify.setNotFoundHandler((request, reply) => {
-    console.log(`[404] ${request.url}\n  ${JSON.stringify(request.body)}`)
+    console.log(`[404] ${request.method} ${request.url}\n  ${JSON.stringify(request.body)}`)
     reply.status(404).send({ "error": "Not Found" })
 })
 
 // server error
 fastify.setErrorHandler((error, request, reply) => {
-    console.error(`[500] ${request.url}\n  ${JSON.stringify(request.body)}`)
+    console.error(`[500] ${request.method} ${request.url}\n  ${JSON.stringify(request.body)}`)
     console.error(error)
     reply.status(500).send({ "error": "Internal Server Error" })
 })

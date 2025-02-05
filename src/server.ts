@@ -65,6 +65,21 @@ fastify.addHook('onSend', (_, reply, payload, done) => {
 
 })
 
+
+// error handling
+// not found
+fastify.setNotFoundHandler((request, reply) => {
+    console.log(`[404] ${request.url} ${request.body}`)
+    reply.status(404).send({ "error": "Not Found" })
+})
+
+// server error
+fastify.setErrorHandler((error, request, reply) => {
+    console.error(`[500] ${request.url} ${request.body}`)
+    console.error(error)
+    reply.status(500).send({ "error": "Internal Server Error" })
+})
+
 // content-type parsers
 function jsonParser(_: FastifyRequest, body: string, done: ContentTypeParserDoneFunction) {
     try {

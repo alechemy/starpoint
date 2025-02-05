@@ -56,159 +56,8 @@ const equipmentSellReward = [
     15
 ]
 
-const SellEquipment = async (playerId: number, equipmentId: number, sellCount?: number) => {
-    const equipmentRarity = Math.floor(equipmentId / 1000000) - 1;
-    // get the data for the equipment
-    const playerEquipmentData = getPlayerEquipmentSync(playerId, equipmentId);
-    if (playerEquipmentData === null)
-        throw new Error("Player does not own equipment.")
-    let newStack = playerEquipmentData.stack;
-    if (!sellCount) {
-        if (playerEquipmentData.stack === 0)
-            throw new Error("Player does not have any stacks of this equipment.");
-        sellCount = playerEquipmentData.stack;
-        newStack = 0;
-    } else {
-        // make sure that we have enough stacks
-        newStack = playerEquipmentData.stack - sellCount;
-        if (0 > newStack)
-            throw new Error("Attempt to sell more stacks than owned.");
-    }
-
-    // update eqwuipment
-    playerEquipmentData.stack = newStack;
-    updatePlayerEquipmentSync(playerId, equipmentId, { stack: newStack });
-
-    const addWrightPieces = (equipmentSellReward[equipmentRarity] ?? 0) * sellCount;
-    const currentWrightPieces = getPlayerItemSync(playerId, wrightpieceItemId) ?? 0;
-    const newWrightPieces = currentWrightPieces + addWrightPieces;
-    updatePlayerItemSync(playerId, wrightpieceItemId, newWrightPieces);
-
-    const returnEquipment = clientSerializeEquipment(equipmentId, playerEquipmentData);
-    const returnItemCount = givePlayerItemSync(playerId, equipmentId, sellCount);
-
-    return {
-        returnEquipments: [
-            returnEquipment,
-        ],
-        returnItems: [
-            { id: equipmentId, count: returnItemCount },
-            { id: wrightpieceItemId, count: newWrightPieces }
-        ]
-    }
-}
-
-const UpgradeEquipmentWithStack = async (playerId: number, equipmentId: number, upgradeCount?: number) => {
-    // get equipment
-    const equipment = getPlayerEquipmentSync(playerId, equipmentId)
-    if (equipment === null)
-        throw new Error("Player does not own equipment.")
-
-
-    let newLevel = equipment.level;
-    let newStack = equipment.stack;
-    if (!upgradeCount) {
-        if (equipment.level === 5)
-            throw new Error("Cannot upgrade weapon more than 4 times.")
-        upgradeCount = Math.min(5 - equipment.level, equipment.stack)
-        newLevel += upgradeCount
-        newStack -= upgradeCount
-    } else {
-        // validate that we won't overflow the equipment's level.
-        const newLevel = equipment.level + upgradeCount
-        if (newLevel > 5)
-            throw new Error("Cannot upgrade weapon more than 4 times.")
-        newStack = equipment.stack - upgradeCount
-        if (0 > newStack)
-            throw new Error("Not enough stack.")
-    }
-
-    const equipmentRarity = Math.floor(equipmentId / 1000000) - 1
-    const currentWrightPieces = getPlayerItemSync(playerId, wrightpieceItemId) ?? 0
-    const upgradeCost = (equipmentUpgradeCost[equipmentRarity] ?? 0) * upgradeCount
-    const newWrightPieces = currentWrightPieces - upgradeCost
-    if (newWrightPieces < 0)
-        throw new Error("Not enough of wrightpieces.")
-    updatePlayerItemSync(playerId, wrightpieceItemId, newWrightPieces)
-
-    // upgrade weapon
-    equipment.level = newLevel
-    equipment.stack = newStack
-    updatePlayerEquipmentSync(playerId, equipmentId, { "stack": newStack, "level": newLevel })
-
-    // give ability cores
-    const returnItemCount = givePlayerItemSync(playerId, equipmentId, upgradeCount)
-
-    return {
-        returnEquipments: [
-            clientSerializeEquipment(equipmentId, equipment),
-        ],
-        returnItems: [
-            { id: equipmentId, count: returnItemCount },
-            { id: wrightpieceItemId, count: newWrightPieces }
-        ]
-    }
-}
-
-const UpgradeEquipmentWithItem = async (playerId: number, equipmentId: number, itemId: number, upgradeCount?: number) => {
-    // get equipment
-    const equipment = getPlayerEquipmentSync(playerId, equipmentId)
-    if (equipment === null)
-        throw new Error("Player does not own equipment.")
-
-    let itemCount = getPlayerItemSync(playerId, itemId) ?? 0
-    if (itemCount === 0)
-        throw new Error("Player does not own item.")
-
-    let newLevel = equipment.level;
-    if (!upgradeCount) {
-        if (equipment.level === 5)
-            throw new Error("Cannot upgrade weapon more than 4 times.")
-        upgradeCount = Math.min(5 - equipment.level, itemCount)
-        newLevel += upgradeCount
-        itemCount -= upgradeCount
-    } else {
-        // validate that we won't overflow the equipment's level.
-        const newLevel = equipment.level + upgradeCount
-        if (newLevel > 5)
-            throw new Error("Cannot upgrade weapon more than 4 times.")
-        itemCount -= upgradeCount
-        if (0 > itemCount)
-            throw new Error("Not enough item.")
-    }
-
-    const equipmentRarity = Math.floor(equipmentId / 1000000) - 1
-    const currentWrightPieces = getPlayerItemSync(playerId, wrightpieceItemId) ?? 0
-    const upgradeCost = (equipmentUpgradeCost[equipmentRarity] ?? 0) * upgradeCount
-    const newWrightPieces = currentWrightPieces - upgradeCost
-    if (newWrightPieces < 0)
-        throw new Error("Not enough of wrightpieces.")
-    updatePlayerItemSync(playerId, wrightpieceItemId, newWrightPieces)
-
-    // upgrade weapon
-    equipment.level = newLevel
-    updatePlayerEquipmentSync(playerId, equipmentId, { "level": newLevel })
-
-    // give ability cores
-    const returnItemCount = givePlayerItemSync(playerId, equipmentId, upgradeCount)
-
-    //save item count
-    updatePlayerItemSync(playerId, itemId, itemCount)
-
-    return {
-        returnEquipments: [
-            clientSerializeEquipment(equipmentId, equipment),
-        ],
-        returnItems: [
-            { id: equipmentId, count: returnItemCount },
-            { id: itemId, count: itemCount },
-            { id: wrightpieceItemId, count: newWrightPieces }
-        ]
-    }
-}
-
 const routes = async (fastify: FastifyInstance) => {
-    fastify.post("/sell_equipment", async (request: FastifyRequest, reply: FastifyReply) => {
+    fastify.post("/sell_equipment", async(request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as SellBody
 
         const toSellEquipmentList = body.equipment_list
@@ -246,7 +95,7 @@ const routes = async (fastify: FastifyInstance) => {
             if (playerEquipmentData === null) return reply.status(400).send({
                 "error": "Bad Request",
                 "message": "Player does not own equipment."
-            })
+            }) 
 
             // add wright pieces
             const stack = playerEquipmentData.stack
@@ -275,7 +124,7 @@ const routes = async (fastify: FastifyInstance) => {
         })
     })
 
-    fastify.post("/sell_stack", async (request: FastifyRequest, reply: FastifyReply) => {
+    fastify.post("/sell_stack", async(request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as SellBody
 
         const toSellEquipmentList = body.equipment_list
@@ -300,22 +149,45 @@ const routes = async (fastify: FastifyInstance) => {
         })
 
         // get wrightpieces
+        let newWrightPieces = 0;
         const returnItemList: Record<number, number> = {}
         const returnEquipmentList: Object[] = []
 
         // sell stacks
         for (const toSell of toSellEquipmentList) {
-            try {
-                const result = await SellEquipment(playerId, toSell.equipment_id, Math.max(1, (toSell as SellStackEquipmentListItem).number))
-                returnEquipmentList.push(...result.returnEquipments)
-                result.returnItems.forEach(item => returnItemList[item.id] = item.count)
-            } catch (e: any) {
-                return reply.status(400).send({
-                    "error": "Bad Request",
-                    "message": e.message
-                })
-            }
+            const equipmentId = toSell.equipment_id
+            const sellCount = Math.max(1, (toSell as SellStackEquipmentListItem).number)
+            const equipmentRarity = Math.floor(equipmentId / 1000000) - 1
+
+            // get the data for the equipment
+            const playerEquipmentData = getPlayerEquipmentSync(playerId, equipmentId)
+            if (playerEquipmentData === null) return reply.status(400).send({
+                "error": "Bad Request",
+                "message": "Player does not own equipment."
+            })
+
+            // make sure that we have enough stacks
+            const newStack = playerEquipmentData.stack - sellCount
+            if (0 > newStack) return reply.status(400).send({
+                "error": "Bad Request",
+                "message": "Attempt to sell more stacks than owned."
+            })
+
+            newWrightPieces += (equipmentSellReward[equipmentRarity] ?? 0) * sellCount
+
+            // update eqwuipment
+            playerEquipmentData.stack = newStack
+            updatePlayerEquipmentSync(playerId, equipmentId, {
+                stack: newStack
+            })
+            returnEquipmentList.push(clientSerializeEquipment(equipmentId, playerEquipmentData))
+
+            // give ability sould
+            returnItemList[equipmentId] = givePlayerItemSync(playerId, equipmentId, sellCount)
         }
+
+        // give wrightpieces
+        returnItemList[wrightpieceItemId] = givePlayerItemSync(playerId, wrightpieceItemId, newWrightPieces)
 
         // respond to client
         reply.header("content-type", "application/x-msgpack")
@@ -358,23 +230,65 @@ const routes = async (fastify: FastifyInstance) => {
             "message": "No players bound to account."
         })
 
-        const returnItemList: Record<number, number> = {}
+        // get equipment
+        const equipment = getPlayerEquipmentSync(playerId, equipmentId)
+        if (equipment === null) return reply.status(400).send({
+            "error": "Bad Request",
+            "message": "Player does not own equipment."
+        })
 
-        let result: { returnEquipments: Object[], returnItems: { id: number, count: number }[] };
-        try {
-            if (useStack) {
-                result = await UpgradeEquipmentWithStack(playerId, equipmentId, upgradeCount)
-            } else {
-                if (!itemId) throw new Error("Item id is required.")
-                result = await UpgradeEquipmentWithItem(playerId, equipmentId, itemId, upgradeCount)
-            }
-        } catch (e: any) {
-            return reply.status(400).send({
-                "error": "Bad Request",
-                "message": e.message
-            })
+        // validate that we won't overflow the equipment's level.
+        const newLevel = equipment.level + upgradeCount
+        if (newLevel > 5) return reply.status(400).send({
+            "error": "Bad Request",
+            "message": "Cannot upgrade weapon more than 4 times."
+        })
+
+        // check if the equipment can be upgraded
+        const newStack = useStack ? equipment.stack - upgradeCount : equipment.stack
+        if (0 > newStack) return reply.status(400).send({
+            "error": "Bad Request",
+            "message": "Not enough stack."
+        })
+
+        const equipmentRarity = Math.floor(equipmentId / 1000000) - 1
+        const wrightPieces = getPlayerItemSync(playerId, wrightpieceItemId) ?? 0
+        const upgradeCost = equipmentUpgradeCost[equipmentRarity] ?? 0
+        const newWrightPieces = wrightPieces - (upgradeCost * upgradeCount)
+        if (0 > newWrightPieces) return reply.status(400).send({
+            "error": "Bad Request",
+            "message": "Not enough of wrightpieces."
+        }) 
+        
+        const itemCount = itemId ? getPlayerItemSync(playerId, itemId) ?? 0 : 0
+        const newItemCount = !useStack ? itemCount - upgradeCount : itemCount
+        if (0 > newItemCount) return reply.status(400).send({
+            "error": "Bad Request",
+            "message": "Not enough of item."
+        })
+
+        const returnItemList: Record<string, number> = {}
+
+        // deduct item
+        if (!useStack && itemId !== undefined) {
+            returnItemList[itemId] = newItemCount
+            updatePlayerItemSync(playerId, itemId, newItemCount)
         }
-        result.returnItems.forEach(item => returnItemList[item.id] = item.count)
+
+        // deduct wrightpiece
+        returnItemList[wrightpieceItemId] = newWrightPieces
+        updatePlayerItemSync(playerId, wrightpieceItemId, newWrightPieces)
+
+        // upgrade weapon
+        equipment.level = newLevel
+        equipment.stack = newStack
+        updatePlayerEquipmentSync(playerId, equipmentId, {
+            "stack": newStack,
+            "level": newLevel
+        })
+
+        // give ability cores
+        returnItemList[equipmentId] = givePlayerItemSync(playerId, equipmentId, upgradeCount)
 
         reply.header("content-type", "application/x-msgpack")
         return reply.status(200).send({
@@ -382,7 +296,9 @@ const routes = async (fastify: FastifyInstance) => {
                 viewer_id: viewerId
             }),
             "data": {
-                "equipment_list": result.returnEquipments,
+                "equipment_list": [
+                    clientSerializeEquipment(equipmentId, equipment)
+                ],
                 "item_list": returnItemList,
                 "mail_arrived": false
             }
@@ -423,7 +339,7 @@ const routes = async (fastify: FastifyInstance) => {
                 })
             }
         }
-
+        
         reply.header("content-type", "application/x-msgpack")
         return reply.status(200).send({
             "data_headers": generateDataHeaders({

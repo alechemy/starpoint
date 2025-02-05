@@ -31,6 +31,7 @@ import paymentApiPlugin from "./routes/api/payment"
 import newsApiPlugin from "./routes/api/news"
 import raidEventApiPlugin from "./routes/api/raidEvent"
 import rushEventApiPlugin from "./routes/api/rushEvent"
+import quest from "./routes/api/quest";
 // web routes
 import indexWebPlugin from "./routes/web"
 // web api routes
@@ -136,6 +137,7 @@ fastify.register(paymentApiPlugin, { prefix: `${apiPrefix}/payment` })
 fastify.register(newsApiPlugin, { prefix: `${apiPrefix}/news` })
 fastify.register(raidEventApiPlugin, { prefix: `${apiPrefix}/event/raid` })
 fastify.register(rushEventApiPlugin, { prefix: `${apiPrefix}/event/rush` })
+fastify.register(quest, { prefix: `${apiPrefix}/quest` })
 
 // openapi
 fastify.register(openapiPlugin, { prefix: "/openapi/service" })

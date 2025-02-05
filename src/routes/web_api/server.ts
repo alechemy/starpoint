@@ -1,7 +1,9 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { setServerTime } from "../../utils";
+import { setServerTime, setSessionWantForceUpdate } from "../../utils";
 import { givePlayerCharacterSync } from "../../lib/character";
 import { givePlayerEquipmentSync } from "../../lib/equipment";
+import { getAccountFromPlayerIdSync, getAccountSessionsOfType } from "../../data/wdfpData";
+import { SessionType } from "../../data/types";
 
 interface TimeQuery {
     time: string | undefined
@@ -36,8 +38,25 @@ const routes = async (fastify: FastifyInstance) => {
         return reply.redirect(`/`);
     })
 
+    const set_player_force_update = async (player_id: number) => {
+        // const account = getAccountFromPlayerIdSync(player_id)?.id;
+        const account = await (new Promise<number | undefined>((resolve, reject) => {
+            try {
+                resolve(getAccountFromPlayerIdSync(player_id)?.id);
+            } catch (e) {
+                reject(e);
+            }
+        }));
+        if (!account) return false;
+        const viewerIds = await getAccountSessionsOfType(account, SessionType.VIEWER);
+        if (!viewerIds[0]) return false;
+        const viewerId = Number.parseInt(viewerIds[0].token);
+        setSessionWantForceUpdate(viewerId);
+        return true;
+    }
+
     fastify.get("/give_chara", async (request: FastifyRequest, reply: FastifyReply) => {
-        const q = (request.query as {playerId?:string, characterId?:string});
+        const q = (request.query as { playerId?: string, characterId?: string });
         if (!q.playerId || !q.characterId) return reply.status(400).send({
             "error": "Bad Request",
             "message": "Invalid query parameters."
@@ -56,6 +75,8 @@ const routes = async (fastify: FastifyInstance) => {
             "message": "Could not give player character."
         });
 
+        set_player_force_update(playerId);
+
         // return reply.redirect(`/`);
         return reply.send({
             "error": "Success",
@@ -64,7 +85,7 @@ const routes = async (fastify: FastifyInstance) => {
     })
 
     fastify.get("/give_equipment", async (request: FastifyRequest, reply: FastifyReply) => {
-        const q = (request.query as {playerId?:string, equipmentId?:string, amount?:string});
+        const q = (request.query as { playerId?: string, equipmentId?: string, amount?: string });
         if (!q.playerId || !q.equipmentId) return reply.status(400).send({
             "error": "Bad Request",
             "message": "Invalid query parameters."
@@ -91,6 +112,8 @@ const routes = async (fastify: FastifyInstance) => {
             "error": "Bad Request",
             "message": "Could not give player equipment."
         });
+
+        set_player_force_update(playerId);
 
         // return reply.redirect(`/`);
         return reply.send({

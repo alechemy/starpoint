@@ -2,7 +2,7 @@ import { randomInt } from "crypto"
 import { FastifyRequest } from "fastify"
 
 // The server's current date.
-let serverTime: Date | null = null;
+let serverTime: Date | null = new Date("2024-06-02T12:00:00.000Z"); // EOS Date
 
 /**
  * Returns the current server time as a unix epoch.
@@ -64,6 +64,20 @@ export function generateViewerId(): number {
     return randomInt(100000000, 999999999)
 }
 
+let sessionWantForceUpdate: Set<number> = new Set<number>();
+
+export function setSessionWantForceUpdate(sessionId: number = 0) {
+    sessionWantForceUpdate.add(sessionId);
+}
+
+export function clearSessionWantForceUpdate(sessionId: number = 0) {
+    if (sessionId == 0) {
+        sessionWantForceUpdate.clear();
+    } else {
+        sessionWantForceUpdate.delete(sessionId);
+    }
+}
+
 export interface DataHeaders {
     force_update?: boolean
     asset_update?: boolean
@@ -98,6 +112,11 @@ export function generateDataHeaders(
         const customValue = customValues[field]
         const defaultValue = defaultHeaders[field]
         headers[field] = customValue === undefined ? defaultValue : customValue
+    }
+
+    if (customValues.viewer_id && sessionWantForceUpdate.has(customValues.viewer_id)) {
+        headers.force_update = true;
+        sessionWantForceUpdate.delete(customValues.viewer_id);
     }
 
     return headers

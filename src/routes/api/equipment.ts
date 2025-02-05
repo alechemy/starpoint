@@ -56,7 +56,7 @@ const equipmentSellReward = [
     15
 ]
 
-class ClientError extends Error {} // TODO: move this to a shared file and deal with it in the middleware
+class ClientError extends Error { } // TODO: move this to a shared file and deal with it in the middleware
 
 const sell_equipment_stack = async (playerId: number, equipmentList: { equipmentId: number, count?: number }[]) => {
     let toAddWrightPieces = 0;
@@ -290,7 +290,7 @@ const routes = async (fastify: FastifyInstance) => {
     fastify.post("/sell_stack", async (request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as SellBody;
 
-        try{
+        try {
             const result = await sell_equipment_stack(
                 await viewer_id_to_player_id(body.viewer_id),
                 body.equipment_list.map(el => ({
@@ -298,7 +298,7 @@ const routes = async (fastify: FastifyInstance) => {
                     count: (el as SellStackEquipmentListItem).number
                 }))
             );
-            
+
             reply.header("content-type", "application/x-msgpack")
             return reply.status(200).send({
                 "data_headers": generateDataHeaders({
@@ -319,10 +319,36 @@ const routes = async (fastify: FastifyInstance) => {
         }
     })
 
+    fastify.post("/bulk_sell_stack", async (request: FastifyRequest, reply: FastifyReply) => {
+        const { viewer_id, equipment_ids } = request.body as { viewer_id: number, equipment_ids: number[] };
+        try {
+            const playerId = await viewer_id_to_player_id(viewer_id);
+            const result = await sell_equipment_stack(playerId, equipment_ids.map(equipmentId => ({ equipmentId })));
+
+            reply.header("content-type", "application/x-msgpack")
+            return reply.status(200).send({
+                "data_headers": generateDataHeaders({
+                    viewer_id
+                }),
+                "data": {
+                    "equipment_list": result.equipment_list,
+                    "item_list": result.item_list,
+                    "mail_arrived": false
+                }
+            })
+        } catch (e: any) {
+            if (e instanceof ClientError) return reply.status(400).send({
+                "error": "Bad Request",
+                "message": e.message
+            });
+            throw e;
+        }
+    })
+
     fastify.post("/upgrade", async (request: FastifyRequest, reply: FastifyReply) => {
         const body = request.body as UpgradeBody;
 
-        try{
+        try {
             const result = await upgrade_equipment(
                 await viewer_id_to_player_id(body.viewer_id),
                 [{
@@ -344,7 +370,33 @@ const routes = async (fastify: FastifyInstance) => {
                     "mail_arrived": false
                 }
             })
-        }catch (e: any) {
+        } catch (e: any) {
+            if (e instanceof ClientError) return reply.status(400).send({
+                "error": "Bad Request",
+                "message": e.message
+            });
+            throw e;
+        }
+    })
+
+    fastify.post("/bulk_upgrade", async (request: FastifyRequest, reply: FastifyReply) => {
+        const { viewer_id, equipment_ids } = request.body as { viewer_id: number, equipment_ids: number[] };
+        try {
+            const playerId = await viewer_id_to_player_id(viewer_id);
+            const result = await upgrade_equipment(playerId, equipment_ids.map(equipmentId => ({ equipmentId, costStack:true })));
+
+            reply.header("content-type", "application/x-msgpack")
+            return reply.status(200).send({
+                "data_headers": generateDataHeaders({
+                    viewer_id
+                }),
+                "data": {
+                    "equipment_list": result.equipment_list,
+                    "item_list": result.item_list,
+                    "mail_arrived": false
+                }
+            })
+        } catch (e: any) {
             if (e instanceof ClientError) return reply.status(400).send({
                 "error": "Bad Request",
                 "message": e.message

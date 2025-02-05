@@ -125,6 +125,10 @@ const routes = async (fastify: FastifyInstance) => {
             path: "/v3/log/writeRoundLog",
             rtn: { 'status': 200, 'desc': 'OK', 'content': {}, }
         },
+        {
+            path: "/v3/promotion/popup/getList",
+            rtn: { 'status': 200, 'desc': 'OK', 'content': {}, }
+        },
     ].forEach(({ path, rtn }) => { fastify.post(path, (_, reply: FastifyReply) => { reply.status(200).send(rtn) }) })
 
     fastify.post("/v3/util/country/get", (_, reply: FastifyReply) => {

@@ -2,6 +2,7 @@ import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { setServerTime } from "../../utils";
 import { givePlayerCharacterSync } from "../../lib/character";
 import { givePlayerEquipmentSync } from "../../lib/equipment";
+import { SendMail, MAIL_TYPE } from "../../nya/mail";
 
 interface TimeQuery {
     time: string | undefined
@@ -50,11 +51,13 @@ const routes = async (fastify: FastifyInstance) => {
             "message": "Invalid query parameters."
         });
 
-        const giveResult = givePlayerCharacterSync(playerId, characterId);
-        if (!giveResult) return reply.status(400).send({
-            "error": "Bad Request",
-            "message": "Could not give player character."
-        });
+        SendMail(playerId, {
+            subject: "Give Character",
+            description: "From Web API",
+            type: MAIL_TYPE.CHARACTER,
+            type_id: characterId,
+            number: 1
+        })
 
         // return reply.redirect(`/`);
         return reply.send({
@@ -85,12 +88,14 @@ const routes = async (fastify: FastifyInstance) => {
                 "message": "Invalid query parameters."
             });
         }
-
-        const giveResult = givePlayerEquipmentSync(playerId, equipmentId, amount);
-        if (!giveResult) return reply.status(400).send({
-            "error": "Bad Request",
-            "message": "Could not give player equipment."
-        });
+        
+        SendMail(playerId, {
+            subject: "Give Equipment",
+            description: "From Web API",
+            type: MAIL_TYPE.EQUIPMENT,
+            type_id: equipmentId,
+            number: amount
+        })
 
         // return reply.redirect(`/`);
         return reply.send({

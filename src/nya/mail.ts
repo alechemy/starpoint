@@ -33,7 +33,7 @@ enum SPECIAL_MAIL_ID {
     EXP_1500,
 }
 
-enum MAIL_TYPE {
+export enum MAIL_TYPE {
     ITEM = 1, // with type_id
     PAID_VIRTUAL_MONEY = 3,
     FREE_VIRTUAL_MONEY = 4,

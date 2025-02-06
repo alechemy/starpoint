@@ -10,7 +10,6 @@ const routes = async (fastify: FastifyInstance) => {
                 viewer_id: body.viewer_id
             }),
             "data": {
-                "length": 0,
                 "recent_other_player_party": [],
             }
         });

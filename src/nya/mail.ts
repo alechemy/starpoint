@@ -142,7 +142,7 @@ const process_mail = (player_id: number, { type, type_id, number }: Mail) => {
                     id: player_id,
                     freeVmoney: new_vmoney,
                 });
-                return { "user_info": { "freeVmoney": new_vmoney } };
+                return { "user_info": { "free_vmoney": new_vmoney } };
             }
             break;
         case MAIL_TYPE.CHARACTER:
@@ -185,7 +185,7 @@ const process_mail = (player_id: number, { type, type_id, number }: Mail) => {
                     id: player_id,
                     freeMana: new_mana,
                 });
-                return { "user_info": { "freeMana": new_mana } };
+                return { "user_info": { "free_mana": new_mana } };
             }
             break;
         case MAIL_TYPE.POOL_EXP:
@@ -195,7 +195,7 @@ const process_mail = (player_id: number, { type, type_id, number }: Mail) => {
                     id: player_id,
                     expPool: new_pool_exp,
                 });
-                return { "user_info": { "expPool": new_pool_exp } };
+                return { "user_info": { "exp_pool": new_pool_exp } };
             }
             break;
         default:

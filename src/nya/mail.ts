@@ -95,7 +95,7 @@ const CachedMails: Record<number, Mail_[]> = {}
 
 
 const date2str = (date: Date) => {
-    return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()} ${date.getHours()}:${date.getMinutes()}:${date.getSeconds()}`
+    return date.toISOString().replace("T", " ").replace(/\.\d+Z$/, "")
 }
 
 export const SendMail = (player_id: number, mail: Mail) => {

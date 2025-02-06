@@ -31,10 +31,10 @@ const MAIL_ID_BREAD_1500 = 10000001
 const SpecialMails: Mail[] = [
     {
         "id": MAIL_ID_BREAD_1500,
-        "create_time": "2022-01-01T00:00:00Z",
+        "create_time": "2022-01-01 12:00:00",
         "number": 1,
         "reason_id": 1,
-        "receive_time": "2022-01-01T00:00:00Z",
+        "receive_time": "2022-01-01 12:00:00",
         "reward_period_limited": true,
         "type": 1,
         "type_id": 1,

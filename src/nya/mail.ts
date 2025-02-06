@@ -100,7 +100,7 @@ const date2str = (date: Date) => {
 
 export const SendMail = (player_id: number, mail: Mail) => {
     if (!CachedMails[player_id]) CachedMails[player_id] = []
-    CachedMails[player_id].push({
+    const mail_ = {
         "id": MailIdCounter++,
         "create_time": date2str(new Date()),
         "reason_id": 1,
@@ -108,7 +108,9 @@ export const SendMail = (player_id: number, mail: Mail) => {
         "reward_limit_time": "2099-01-01 12:00:00",
         "reward_period_limited": false,
         ...mail,
-    })
+    }
+    CachedMails[player_id].push(mail_)
+    console.log(`Mail sent to player ${player_id}: ${JSON.stringify(mail_)}`)
 }
 
 export const GetMails = (player_id: number) => SpecialMails.concat(CachedMails[player_id] || [])

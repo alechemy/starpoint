@@ -37,72 +37,60 @@ const routes = async (fastify: FastifyInstance) => {
         return reply.redirect(`/`);
     })
 
-    fastify.get("/give_chara", async (request: FastifyRequest, reply: FastifyReply) => {
-        const q = (request.query as { playerId?: string, characterId?: string });
-        if (!q.playerId || !q.characterId) return reply.status(400).send({
+    fastify.get("/give", async (request: FastifyRequest, reply: FastifyReply) => {
+        const q = request.query as { playerId: string, type: string, typeId: string, number?: string };
+        if (!q.playerId || !q.type || !q.typeId) return reply.status(400).send({
             "error": "Bad Request",
             "message": "Invalid query parameters."
         });
-
         const playerId = parseInt(q.playerId);
-        const characterId = parseInt(q.characterId);
-        if (isNaN(playerId) || isNaN(characterId)) return reply.status(400).send({
+        const typeId = parseInt(q.typeId);
+        const number = q.number ? parseInt(q.number) : 1;
+        if (isNaN(playerId) || isNaN(typeId) || isNaN(number)) return reply.status(400).send({
             "error": "Bad Request",
             "message": "Invalid query parameters."
         });
-
-        SendMail(playerId, {
-            subject: "Give Character",
-            description: "From Web API",
-            type: MAIL_TYPE.CHARACTER,
-            type_id: characterId,
-            number: 1
-        })
-
-        // return reply.redirect(`/`);
-        return reply.send({
-            "error": "Success",
-            "message": "Operation successful."
-        });
-    })
-
-    fastify.get("/give_equipment", async (request: FastifyRequest, reply: FastifyReply) => {
-        const q = (request.query as { playerId?: string, equipmentId?: string, amount?: string });
-        if (!q.playerId || !q.equipmentId) return reply.status(400).send({
-            "error": "Bad Request",
-            "message": "Invalid query parameters."
-        });
-
-        const playerId = parseInt(q.playerId);
-        const equipmentId = parseInt(q.equipmentId);
-        if (isNaN(playerId) || isNaN(equipmentId)) return reply.status(400).send({
-            "error": "Bad Request",
-            "message": "Invalid query parameters."
-        });
-
-        let amount = 1;
-        if (q.amount) {
-            amount = parseInt(q.amount);
-            if (isNaN(amount)) return reply.status(400).send({
-                "error": "Bad Request",
-                "message": "Invalid query parameters."
-            });
-        }
         
-        SendMail(playerId, {
-            subject: "Give Equipment",
-            description: "From Web API",
-            type: MAIL_TYPE.EQUIPMENT,
-            type_id: equipmentId,
-            number: amount
-        })
+        switch (q.type) {
+            case "chara":
+                SendMail(playerId, {
+                    subject: "Give Character",
+                    description: "From Web API",
+                    type: MAIL_TYPE.CHARACTER,
+                    type_id: typeId,
+                    number: number
+                })
+                break;
+            case "equip":
+                SendMail(playerId, {
+                    subject: "Give Equipment",
+                    description: "From Web API",
+                    type: MAIL_TYPE.EQUIPMENT,
+                    type_id: typeId,
+                    number: number
+                })
+                break;
+            case "item":
+                SendMail(playerId, {
+                    subject: "Give Item",
+                    description: "From Web API",
+                    type: MAIL_TYPE.ITEM,
+                    type_id: typeId,
+                    number: number
+                })
+                break;
+            default:
+                return reply.status(400).send({
+                    "error": "Bad Request",
+                    "message": "Invalid query parameters."
+                });
+        }
 
-        // return reply.redirect(`/`);
         return reply.send({
             "error": "Success",
             "message": "Operation successful."
         });
-    })
+    });
 }
 
 export default routes;

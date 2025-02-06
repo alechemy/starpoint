@@ -64,20 +64,6 @@ export function generateViewerId(): number {
     return randomInt(100000000, 999999999)
 }
 
-let sessionWantForceUpdate: Set<number> = new Set<number>();
-
-export function setSessionWantForceUpdate(sessionId: number = 0) {
-    sessionWantForceUpdate.add(sessionId);
-}
-
-export function clearSessionWantForceUpdate(sessionId: number = 0) {
-    if (sessionId == 0) {
-        sessionWantForceUpdate.clear();
-    } else {
-        sessionWantForceUpdate.delete(sessionId);
-    }
-}
-
 export interface DataHeaders {
     force_update?: boolean
     asset_update?: boolean
@@ -112,11 +98,6 @@ export function generateDataHeaders(
         const customValue = customValues[field]
         const defaultValue = defaultHeaders[field]
         headers[field] = customValue === undefined ? defaultValue : customValue
-    }
-
-    if (customValues.viewer_id && sessionWantForceUpdate.has(customValues.viewer_id)) {
-        headers.servertime = 0; // ???? // force update field seems not work, so we set servertime to 0 to force update
-        sessionWantForceUpdate.delete(customValues.viewer_id);
     }
 
     return headers

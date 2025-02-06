@@ -5,6 +5,7 @@ import { deletePlayerEquipmentSync, getAccountPlayers, getPlayerEquipmentSync, g
 import { generateDataHeaders } from "../../utils";
 import { clientSerializeEquipment } from "../../lib/equipment";
 import { PlayerEquipment, UserEquipment } from "../../data/types";
+import { ClientError, viewer_id_to_player_id } from "../../nya/utils";
 
 interface SetProtectionBody {
     protection: boolean
@@ -55,8 +56,6 @@ const equipmentSellReward = [
     5,
     15
 ]
-
-class ClientError extends Error { } // TODO: move this to a shared file and deal with it in the middleware
 
 const sell_equipment_stack = async (playerId: number, equipmentList: { equipmentId: number, count?: number }[]) => {
     let toAddWrightPieces = 0;
@@ -208,15 +207,6 @@ const upgrade_equipment = async (playerId: number, equipmentList: { equipmentId:
         "equipment_list": returnEquipmentList,
         "item_list": returnItemList,
     }
-}
-
-const viewer_id_to_player_id = async (viewerId: number) => {
-    if (!viewerId) throw new ClientError(`Invalid viewerId.`);
-    const viewerIdSession = await getSession(viewerId.toString());
-    if (!viewerIdSession) throw new ClientError(`Invalid viewerId.`);
-    const playerId = (await getAccountPlayers(viewerIdSession.accountId))[0];
-    if (!playerId) throw new ClientError(`No players bound to account.`);
-    return playerId;
 }
 
 const routes = async (fastify: FastifyInstance) => {

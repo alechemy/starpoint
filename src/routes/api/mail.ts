@@ -14,7 +14,7 @@ interface IndexBody {
 }
 
 interface Mail {
-    "id"?: number,
+    "id": number,
     "create_time": string,
     "description"?: string,
     "number": number,
@@ -55,8 +55,8 @@ const SpecialMails: Mail[] = [
     {
         "id": SPECIAL_MAIL_ID.BREAD_1500,
         "create_time": "2020-01-01 12:00:00",
-        "reason_id": 1,
-        "receive_time": "2020-01-01 12:00:00",
+        "reason_id": 2,
+        "receive_time": "",
         "reward_limit_time": "2099-01-01 12:00:00",
         "reward_period_limited": false,
         "type": MAIL_TYPE.PAID_VIRTUAL_MONEY,
@@ -67,8 +67,8 @@ const SpecialMails: Mail[] = [
     {
         "id": SPECIAL_MAIL_ID.MANA_1500,
         "create_time": "2020-01-01 12:00:00",
-        "reason_id": 1500,
-        "receive_time": "2020-01-01 12:00:00",
+        "reason_id": 2,
+        "receive_time": "",
         "reward_limit_time": "2099-01-01 12:00:00",
         "reward_period_limited": false,
         "type": MAIL_TYPE.FREE_MANA,
@@ -79,8 +79,8 @@ const SpecialMails: Mail[] = [
     {
         "id": SPECIAL_MAIL_ID.EXP_1500,
         "create_time": "2020-01-01 12:00:00",
-        "reason_id": 1500,
-        "receive_time": "2020-01-01 12:00:00",
+        "reason_id": 2,
+        "receive_time": "",
         "reward_limit_time": "2099-01-01 12:00:00",
         "reward_period_limited": false,
         "type": MAIL_TYPE.POOL_EXP,

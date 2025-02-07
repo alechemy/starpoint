@@ -8,7 +8,7 @@ import { generateDataHeaders, getServerTime } from "../../utils";
 import { rushEventFolderMaxRounds } from "./rushEvent";
 import { RushEventBattleType, UserRushEventPlayedParty } from "../../data/types";
 import { getSerializedPlayerRushEventPlayedPartiesSync } from "../../lib/rush";
-import { givePlayerRankPoint } from "../../nya/player_rank";
+import { givePlayerRankPoint } from "../../nya/player";
 
 interface StartBody {
     quest_id: number
@@ -185,17 +185,18 @@ const routes = async (fastify: FastifyInstance) => {
             }
         }
 
+        const beforeRankPoint = playerData.rankPoint
+        const { rankPoint: newRankPoint, stamina: newStamina } = givePlayerRankPoint(playerData, questData.rankPointReward);
         // update player
         updatePlayerSync({
             id: playerId,
             freeMana: newMana,
             expPool: newExpPool,
-            // rankPoint: newRankPoint,
+            rankPoint: newRankPoint,
+            stamina: newStamina,
             boostPoint: newBoostPoint,
             bossBoostPoint: newBossBoostPoint
         })
-        const beforeRankPoint = playerData.rankPoint
-        const { rankPoint: newRankPoint, stamina: newStamina } = givePlayerRankPoint(playerId, questData.rankPointReward);
 
         // reward score rewards
         const scoreRewardsResult = givePlayerScoreRewardsSync(playerId, questData.scoreRewardGroupId, questData.scoreRewardGroup, useBoostPoint)

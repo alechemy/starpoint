@@ -21,8 +21,8 @@ export const givePlayerRankPoint = (playerId: number, rankPoint: number) => {
     const currentRank = getRankByPt(playerData.rankPoint);
     playerData.rankPoint += rankPoint
     if (currentRank.rank < MAX_RANK) {
-        const nextRank = getRank(currentRank.rank + 1);
-        if (playerData.rankPoint >= nextRank.total_rp) {
+        if (playerData.rankPoint >= currentRank.total_rp) {
+            const nextRank = getRank(currentRank.rank + 1);
             playerData.stamina = nextRank.stamina;
             onPlayerRankUp.call(playerData, nextRank.rank);
         }

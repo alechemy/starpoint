@@ -1,5 +1,5 @@
 import player_rank_data from "../../assets/player_rank.json";
-import { getPlayerSync } from "../data/wdfpData";
+import { getPlayerSync, updatePlayerSync } from "../data/wdfpData";
 import { onPlayerRankUp } from "./delegates";
 import { bisect } from "./utils";
 
@@ -20,12 +20,20 @@ export const givePlayerRankPoint = (playerId: number, rankPoint: number) => {
     if (!playerData) throw new Error("Player not found");
     const currentRank = getRankByPt(playerData.rankPoint);
     playerData.rankPoint += rankPoint
-    if (currentRank.rank < MAX_RANK) {
-        if (playerData.rankPoint >= currentRank.total_rp) {
-            const nextRank = getRank(currentRank.rank + 1);
-            playerData.stamina = nextRank.stamina;
-            onPlayerRankUp.call(playerData, nextRank.rank);
-        }
+    if (currentRank.rank < MAX_RANK && playerData.rankPoint >= currentRank.total_rp) {
+        const nextRank = getRank(currentRank.rank + 1);
+        playerData.stamina = nextRank.stamina;
+        updatePlayerSync({
+            id: playerId,
+            rankPoint: playerData.rankPoint,
+            stamina: playerData.stamina
+        })
+        onPlayerRankUp.call(playerData, nextRank.rank);
+    } else {
+        updatePlayerSync({
+            id: playerId,
+            rankPoint: playerData.rankPoint
+        })
     }
     return playerData;
 }

@@ -69,7 +69,8 @@
             </form>
             <form
                 class="mt-5 flex flex-col items-center justify-center p-5 border border-outline-variant bg-surface-container rounded-3xl w-full gap-5"
-                method="get" action="/api/server/give">
+                method="get" action="/api/server/give" onsubmit="document.getElementById('response-give').style.display = 'block';return true;" target="response-give">
+                <iframe id="response-give" name="response-give" style="height: 5rem; width: 100%;display:none;"></iframe>
                 <div class="flex flex-row items-center justify-center">
                     <span>Give</h3>
                         <input id="playerId" name="playerId" value="{{playerId}}" type="hidden" />
@@ -85,6 +86,26 @@
                 <button type="submit"
                     class="text-base bg-primary text-on-primary h-[40px] px-[24px] rounded-full flex items-center justify-center relative before:transition-opacity before:absolute before:w-full before:h-full before:left-0 before:top-0 before:rounded-full before:opacity-0 before:hover:bg-on-primary before:hover:opacity-[0.12] transition-opacity">
                     Send Mail (in session)
+                </button>
+            </form>
+            <form
+                class="mt-5 flex flex-col items-center justify-center p-5 border border-outline-variant bg-surface-container rounded-3xl w-full gap-5"
+                method="get" action="/api/server/exboost" onsubmit="document.getElementById('response-exboost').style.display = 'block';return true;" target="response-exboost">
+                <iframe id="response-exboost" name="response-exboost" style="height: 5rem; width: 100%;display:none;"></iframe>
+                <div class="flex flex-row items-center justify-center">
+                    <input name="playerId" value="{{playerId}}" type="hidden" />
+                    <span>Set Charater</h3>
+                        <input class="my-input" name="characterId" type="number" required />
+                        <span>status</span>
+                        <input class="my-input" name="status" type="number" required />
+                        <span>ability</span>
+                        <input class="my-input" name="ability1" type="number" required />
+                        <span>/</span>
+                        <input class="my-input" name="ability2" type="number" required />
+                </div>
+                <button type="submit"
+                    class="text-base bg-primary text-on-primary h-[40px] px-[24px] rounded-full flex items-center justify-center relative before:transition-opacity before:absolute before:w-full before:h-full before:left-0 before:top-0 before:rounded-full before:opacity-0 before:hover:bg-on-primary before:hover:opacity-[0.12] transition-opacity">
+                    Set (required re-login)
                 </button>
             </form>
         </article>

@@ -24,15 +24,21 @@ export const modifyPlayer = <K extends keyof Player>(player: Player, name: K, va
 
 export const commitPlayer = (player: Player) => {
     const plex = player as PlayerEx;
-    if (!plex._modified) return;
+    if (!plex._modified) return [];
     const modified = plex._modified;
     delete plex._modified;
-    if (!modified.size) return;
+    if (!modified.size) return [];
+    const result: { key: string, value: any }[] = [];
     const param: Partial<Player> & Pick<Player, 'id'> = Object.fromEntries([
         ['id', player.id],
-        ...Array.from(modified).map(key => [key, player[key]])
+        ...Array.from(modified).map(key => {
+            const value = player[key];
+            result.push({ key, value });
+            return [key, value];
+        })
     ]);
-    return updatePlayerSync(param);
+    updatePlayerSync(param);
+    return result;
 }
 
 export const givePlayerRankPoint = (playerData: Player, rankPoint: number) => {

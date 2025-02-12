@@ -22,6 +22,9 @@ const routes = async (fastify: FastifyInstance) => {
 
         try {
             const playerId = await viewer_id_to_player_id(body.viewer_id);
+
+            // TODO: cost item
+
             const questProgress = getPlayerSingleQuestProgressSync(playerId, body.category, body.quest_id);
             if (!questProgress) {
                 insertPlayerQuestProgressSync(playerId, body.category, {

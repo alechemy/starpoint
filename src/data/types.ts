@@ -605,6 +605,7 @@ export interface UserQuestProgress {
     high_score?: number
     best_elapsed_time_ms?: number
     clear_rank?: number
+    unlocked?: boolean
 }
 
 export interface UserGachaInfo {

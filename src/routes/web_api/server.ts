@@ -26,11 +26,15 @@ const routes = async (fastify: FastifyInstance) => {
         })
 
         try {
-            // convert string to date
-            const time = new Date(newTime + ".000Z")
+          // convert string to date
+          const date = new Date(newTime);
 
-            setServerTime(time)
+          if (isNaN(date.getTime())) {
+            console.error("Invalid date string:", newTime);
+            return null;
+          }
 
+          setServerTime(new Date(date.toISOString()));
         } catch (error) { }
 
         return reply.redirect(`/`);

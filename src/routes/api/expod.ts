@@ -1,7 +1,8 @@
 // Handles the insertion of mana into characters.
 
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { getAccountPlayers, getPlayerCharacterSync, getPlayerSync, getSession, givePlayerItemSync, updatePlayerSync } from "../../data/wdfpData";
+import { getAccountPlayers, getPlayerCharacterSync, getPlayerSync, getSession, givePlayerItemSync, updatePlayerCharacterSync, updatePlayerSync } from "../../data/wdfpData";
+import getDatabase, { Database } from "../../data";
 import { givePlayerCharactersExpSync } from "../../lib/character";
 import { generateDataHeaders, getServerTime } from "../../utils";
 import { getCharacterDataSync } from "../../lib/assets";
@@ -45,7 +46,7 @@ const routes = async (fastify: FastifyInstance) => {
         const viewerId = body.viewer_id
         const characterId = body.character_id
         const convertCount = body.number
-        if (isNaN(viewerId) || isNaN(characterId) || isNaN(convertCount)) return reply.status(400).send({
+        if (isNaN(viewerId) || isNaN(characterId) || !Number.isSafeInteger(convertCount) || convertCount <= 0) return reply.status(400).send({
             "error": "Bad Request",
             "message": "Invalid request body."
         })
@@ -93,14 +94,11 @@ const routes = async (fastify: FastifyInstance) => {
 
         const afterExp = player.expPool + increaseExp
 
-        // update player
-        updatePlayerSync({
-            id: playerId,
-            expPool: afterExp
-        })
-
-        // add item
-        const afterItemCount = givePlayerItemSync(playerId, rewardItemId, increaseItemCount)
+        const afterItemCount = getDatabase(Database.WDFP_DATA).transaction(() => {
+            updatePlayerCharacterSync(playerId, characterId, { stack: afterStack })
+            updatePlayerSync({ id: playerId, expPool: afterExp })
+            return givePlayerItemSync(playerId, rewardItemId, increaseItemCount)
+        })()
 
         reply.header("content-type", "application/x-msgpack")
         return reply.status(200).send({

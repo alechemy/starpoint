@@ -1,6 +1,6 @@
 import { randomBytes } from "crypto";
 import getDatabase, { Database } from ".";
-import { generateViewerId, getServerTime } from "../utils";
+import { generateViewerId } from "../utils";
 import { Account, DailyChallengePointListCampaign, DailyChallengePointListEntry, MergedPlayerData, PartyCategory, Player, PlayerActiveMission, PlayerBoxGacha, PlayerBoxGachaDrawnReward, PlayerCharacter, PlayerCharacterBondToken, PlayerCharacterExBoost, PlayerDrawnQuest, PlayerEquipment, PlayerGachaCampaign, PlayerGachaInfo, PlayerMultiSpecialExchangeCampaign, PlayerParty, PlayerPartyGroup, PlayerPeriodicRewardPoint, PlayerQuestProgress, PlayerRushEvent, PlayerRushEventClearedFolders, PlayerRushEventPlayedParty, PlayerStartDashExchangeCampaign, RawAccount, RawDailyChallengePointListCampaign, RawDailyChallengePointListEntry, RawPlayer, RawPlayerActiveMission, RawPlayerActiveMissionStage, RawPlayerBoxGacha, RawPlayerCharacter, RawPlayerCharacterBondToken, RawPlayerCharacterManaNode, RawPlayerClearedRegularMission, RawPlayerDrawnQuest, RawPlayerEquipment, RawPlayerGachaCampaign, RawPlayerGachaInfo, RawPlayerItem, RawPlayerMultiSpecialExchangeCampaign, RawPlayerOption, RawPlayerParty, RawPlayerPartyGroup, RawPlayerQuestProgress, RawPlayerRushEvent, RawPlayerRushEventClearedFolder, RawPlayerRushEventPlayedParty, RawPlayerRushEventRanking, RawPlayerStartDashExchangeCampaign, RawPlayerTriggeredTutorial, RawSession, RushEventBattleType, GetRushEventEndlessRankingListResult, Session, SessionType, UserRushEventEndlessBattleRanking, UserRushEventPlayedParty } from "./types";
 import { deserializeBoolean, deserializeNumberList, getDefaultPlayerData, serializeBoolean, serializeNumberList } from "./utils";
 import { getPlayerRushEventEndlessBattleRankingSync } from "../lib/rush";
@@ -985,11 +985,12 @@ export function updatePlayerCharacterBondTokenSync(
     db.prepare(`
     UPDATE players_characters_bond_tokens
     SET status = ?
-    WHERE player_id = ? AND character_id = ?
+    WHERE player_id = ? AND character_id = ? AND mana_board_index = ?
     `).run(
         bondToken.status,
         playerId,
-        Number(characterId)
+        Number(characterId),
+        bondToken.manaBoardIndex
     )
 }
 
@@ -4494,8 +4495,8 @@ export function collectPlayerDataPooledExpSync(
     player: Player,
     dateNow: Date = new Date()
 ) {
-    const serverTimeNow = getServerTime(dateNow)
-    const poolTime = getServerTime(player.expPooledTime)
+    const serverTimeNow = Math.floor(dateNow.getTime() / 1000)
+    const poolTime = Math.floor(player.expPooledTime.getTime() / 1000)
     const diff = Math.max(0, serverTimeNow - poolTime)
 
     if (60 > diff) return;

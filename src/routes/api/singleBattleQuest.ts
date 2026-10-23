@@ -1,8 +1,9 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
-import { deletePlayerRushEventPlayedPartyListSync, getAccountPlayers, getPlayerRushEventPlayedPartiesSync, getPlayerRushEventSync, getPlayerSingleQuestProgressSync, getPlayerSync, getSession, insertPlayerQuestProgressSync, insertPlayerRushEventClearedFolderSync, insertPlayerRushEventPlayedPartySync, updatePlayerQuestProgressSync, updatePlayerRushEventSync, updatePlayerSync } from "../../data/wdfpData";
+import { deletePlayerRushEventPlayedPartyListSync, getAccountPlayers, getPlayerEquipmentSync, getPlayerItemSync, getPlayerRushEventPlayedPartiesSync, getPlayerRushEventSync, getPlayerSingleQuestProgressSync, getPlayerSync, getSession, insertPlayerQuestProgressSync, insertPlayerRushEventClearedFolderSync, insertPlayerRushEventPlayedPartySync, updatePlayerQuestProgressSync, updatePlayerRushEventSync, updatePlayerSync } from "../../data/wdfpData";
 import { getQuestFromCategorySync, getRushEventFolderClearRewards } from "../../lib/assets";
 import { getCharactersEvolutionImgLevels, givePlayerCharactersExpSync } from "../../lib/character";
 import { givePlayerRewardsSync, givePlayerRewardSync, givePlayerScoreRewardsSync } from "../../lib/quest";
+import { clientSerializeEquipment } from "../../lib/equipment";
 import { BattleQuest, EquipmentItemReward, PlayerRewardResult, QuestCategory } from "../../lib/types";
 import { generateDataHeaders, getServerTime } from "../../utils";
 import { rushEventFolderMaxRounds } from "./rushEvent";
@@ -190,8 +191,8 @@ const routes = async (fastify: FastifyInstance) => {
         // update player
         updatePlayerSync({
             id: playerId,
-            freeMana: newMana,
-            expPool: newExpPool,
+            freeMana: newMana + (clearReward?.user_info.free_mana ?? 0) + (sPlusClearReward?.user_info.free_mana ?? 0),
+            expPool: newExpPool + (clearReward?.user_info.exp_pool ?? 0) + (sPlusClearReward?.user_info.exp_pool ?? 0),
             rankPoint: newRankPoint,
             stamina: newStamina,
             boostPoint: newBoostPoint,
@@ -318,15 +319,31 @@ const routes = async (fastify: FastifyInstance) => {
             }
         }
 
+        const equipmentList = new Map<number, Object>()
+        const itemList: Record<string, number> = {}
+        for (const reward of [clearReward, sPlusClearReward, scoreRewardsResult, rushEventRewardsResult]) {
+            if (reward === null) continue
+            for (const equipment of reward.equipment_list as { equipment_id: number }[]) {
+                const ownedEquipment = getPlayerEquipmentSync(playerId, equipment.equipment_id)
+                if (ownedEquipment !== null) {
+                    equipmentList.set(equipment.equipment_id, clientSerializeEquipment(equipment.equipment_id, ownedEquipment))
+                }
+            }
+            for (const itemId of Object.keys(reward.items)) {
+                itemList[itemId] = getPlayerItemSync(playerId, itemId) ?? 0
+            }
+        }
+        const updatedPlayer = getPlayerSync(playerId)!
+
         reply.header("content-type", "application/x-msgpack")
         return reply.status(200).send({
             "data_headers": dataHeaders,
             "data": {
                 "user_info": {
-                    "free_mana": newMana + (clearReward?.user_info.free_mana || 0) + (sPlusClearReward?.user_info.free_mana || 0) + scoreRewardsResult.user_info.free_mana,
-                    "exp_pool": rewardCharacterExpResult.exp_pool + (clearReward?.user_info.exp_pool || 0) + scoreRewardsResult.user_info.exp_pool,
+                    "free_mana": updatedPlayer.freeMana,
+                    "exp_pool": updatedPlayer.expPool,
                     "exp_pooled_time": getServerTime(playerData.expPooledTime),
-                    "free_vmoney": playerData.freeVmoney + (clearReward?.user_info.free_vmoney || 0) + (sPlusClearReward?.user_info.free_vmoney || 0) + scoreRewardsResult.user_info.free_vmoney,
+                    "free_vmoney": updatedPlayer.freeVmoney,
                     "rank_point": newRankPoint,
                     "stamina": newStamina,
                     "stamina_heal_time": getServerTime(playerData.staminaHealTime),
@@ -338,7 +355,8 @@ const routes = async (fastify: FastifyInstance) => {
                     ...rewardCharacterExpResult.character_list,
                     ...(clearReward?.character_list || []),
                     ...(sPlusClearReward?.character_list || []),
-                    ...scoreRewardsResult.character_list
+                    ...scoreRewardsResult.character_list,
+                    ...(rushEventRewardsResult?.character_list ?? [])
                 ],
                 "bond_token_status_list": rewardCharacterExpResult.bond_token_status_list,
                 "rewards": {
@@ -352,7 +370,8 @@ const routes = async (fastify: FastifyInstance) => {
                 "joined_character_id_list": [
                     ...(clearReward?.joined_character_id_list || []),
                     ...(sPlusClearReward?.joined_character_id_list || []),
-                    ...scoreRewardsResult.joined_character_id_list
+                    ...scoreRewardsResult.joined_character_id_list,
+                    ...(rushEventRewardsResult?.joined_character_id_list ?? [])
                 ],
                 "before_rank_point": beforeRankPoint,
                 "clear_rank": clearRank,
@@ -360,15 +379,12 @@ const routes = async (fastify: FastifyInstance) => {
                 "drop_rare_reward_ids": scoreRewardsResult.drop_rare_reward_ids,
                 "drop_additional_reward_ids": [],
                 "drop_periodic_reward_ids": [],
-                "equipment_list": scoreRewardsResult.equipment_list,
+                "equipment_list": [...equipmentList.values()],
                 "category_id": questCategory,
                 "start_time": dataHeaders['servertime'],
                 "is_multi": "single",
                 "quest_name": "",
-                "item_list": {
-                    ...scoreRewardsResult.items,
-                    ...(rushEventRewardsResult?.items ?? {})
-                },
+                "item_list": itemList,
                 "rush_event": rushEventData
             }
         })

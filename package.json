@@ -4,6 +4,7 @@
   "description": "A server reimplementation for the global version of World Flipper",
   "main": "server.ts",
   "scripts": {
+    "test": "tsc && node --test tests/*.cjs",
     "build": "npx tsc & npm run css",
     "css": "npx tailwindcss -i ./src/input.css -o ./web/public/tailwind.css",
     "css:watch": "npx tailwindcss -i ./src/input.css -o ./web/public/tailwind.css --watch --poll",

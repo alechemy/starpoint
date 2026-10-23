@@ -232,7 +232,7 @@ export function givePlayerCharactersExpSync(
 
             addExpList.push({
                 character_id: characterId,
-                add_exp: overflowExp > 0 ? overflowExp - expAmount : expAmount,
+                add_exp: afterExp - currentExp,
                 after_exp: afterExp,
                 add_exp_pool: overflowExp
             })

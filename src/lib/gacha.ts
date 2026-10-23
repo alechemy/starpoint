@@ -7,6 +7,7 @@ import { randomInt } from "crypto";
 import movieSeeds from "../../assets/gacha_movie_seeds.json";
 import rateUpMovieSeeds from "../../assets/gacha_rate_up_movie_seeds.json";
 import { PlayerBoxGachaDrawnReward } from "../data/types";
+import { getPlayerItemSync } from "../data/wdfpData";
 import { givePlayerCharacterSync } from "./character";
 import { givePlayerEquipmentSync } from "./equipment";
 import { givePlayerRewardsSync } from "./quest";
@@ -204,8 +205,8 @@ export function rewardPlayerGachaDrawResultSync(
     }
     
     const returnItems: Record<number, number> = {}
-    for (const [itemId, amount] of items) {
-        returnItems[itemId] = amount
+    for (const itemId of items.keys()) {
+        returnItems[itemId] = getPlayerItemSync(playerId, itemId) ?? 0
     }
 
     return {

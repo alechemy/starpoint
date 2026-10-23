@@ -2,7 +2,19 @@ import { randomInt } from "crypto"
 import { FastifyRequest } from "fastify"
 
 // The server's current date.
-let serverTime: Date | null = new Date("2024-06-02T12:00:00.000Z"); // EOS Date
+let serverTime: Date | null = new Date("2024-06-02T12:00:00Z")
+
+const gameDate = process.env.GAME_DATE
+if (gameDate !== undefined) {
+    if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/.test(gameDate))
+        throw new Error(`GAME_DATE must be a UTC timestamp in YYYY-MM-DDTHH:mm:ssZ format.`)
+
+    const parsed = new Date(gameDate)
+    if (Number.isNaN(parsed.getTime()) || parsed.toISOString() !== gameDate.replace(/Z$/, '.000Z'))
+        throw new Error(`GAME_DATE is not a valid UTC timestamp: ${gameDate}`)
+
+    serverTime = parsed
+}
 
 /**
  * Returns the current server time as a unix epoch.

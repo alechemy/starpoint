@@ -251,7 +251,7 @@ const routes = async (fastify: FastifyInstance) => {
             })
 
             // add wright pieces
-            const stack = playerEquipmentData.stack
+            const stack = playerEquipmentData.stack + 1
             newWrightPieces += (equipmentSellReward[equipmentRarity] ?? 0) * stack
 
             // delete equipment

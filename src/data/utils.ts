@@ -242,7 +242,8 @@ export function serializePlayerData(
     let userTutorial: UserTutorial | null = null
     const playerData = toSerialize.player
     const tutorialStep = playerData.tutorialStep
-    if (tutorialStep !== null && toSerialize.triggeredTutorial.find((value: number) => value === 12) === undefined) {
+    const tutorialEndStep = playerData.tutorialSkipFlag ? 6 : 17
+    if (tutorialStep !== null && tutorialStep < tutorialEndStep && toSerialize.triggeredTutorial.find((value: number) => value === 12) === undefined) {
         userTutorial = {
             "viewer_id": options?.viewerId ?? 0,
             "tutorial_step": tutorialStep,
@@ -350,8 +351,8 @@ export function serializePlayerData(
             return {
                 "campaign_id": campaign.campaignId,
                 "gacha_id": campaign.gachaId,
-                "period_start_time": getServerTime(campaign.periodStartTime),
-                "period_end_time": getServerTime(campaign.periodEndTime),
+                "period_start_time": Math.floor(campaign.periodStartTime.getTime() / 1000),
+                "period_end_time": Math.floor(campaign.periodEndTime.getTime() / 1000),
                 "status": campaign.status,
                 "term_index": campaign.termIndex
             }

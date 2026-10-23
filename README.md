@@ -26,7 +26,7 @@ For a more in-depth view of the progress completed, visit the [API routes docume
 1. Install the latest version of [Node.js](https://nodejs.org/en/download/prebuilt-installer).
 2. Clone the repository from the command line.
    ```
-   git clone https://github.com/Duosion/starpoint.git
+   git clone https://github.com/alechemy/starpoint.git
    ```
    - If you do not have git installed, click the green "Code" button at the top of the page and select "Download ZIP" to download a ZIP of the repository instead.
 3. Navigate to the directory where the repository was cloned/unzipped to.
@@ -38,6 +38,15 @@ For a more in-depth view of the progress completed, visit the [API routes docume
    - [Android (No Root)](/docs/connecting-android.md)
    - [Android (Root)](/docs/connecting-android-root.md)
    - [iOS](/docs/connecting-ios.md)
+
+## Gameplay fixes and configuration
+
+See [Gameplay and operator controls](docs/fork-gameplay.md) for reward and inventory corrections, rank-up behavior, transactional mail claims and regression tests.
+
+- `GAME_DATE` restores an archived content date on startup. Use a UTC timestamp such as `2024-06-02T12:00:00Z`.
+- Permanent repeatable debug gifts are disabled unless `STARPOINT_DEBUG_MAIL=1` is set.
+- The player panel's grant and EX-boost tools require `STARPOINT_ADMIN_TOKEN` and authenticated JSON POST requests. Keep the dashboard loopback-only; other inherited administration routes are not covered by this token.
+- `npm test` compiles TypeScript and runs isolated regression tests with disposable saves. Node.js 22 is recommended for the locked native dependency.
 
 ## FAQ
 - **Do I have to host this on my own?**

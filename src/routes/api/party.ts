@@ -371,6 +371,7 @@ const routes = async (fastify: FastifyInstance) => {
     fastify.post("/check_word", async (request: FastifyRequest, reply: FastifyReply) => {
         const { viewer_id } = request.body as { viewer_id: number, word: string }
         // Why check word in the private server?????????
+        reply.header("content-type", "application/x-msgpack")
         return reply.status(200).send({
             "data_headers": generateDataHeaders({
                 viewer_id

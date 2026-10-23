@@ -1,4 +1,5 @@
-import { getPlayerSync, givePlayerItemSync, updatePlayerSync } from "../data/wdfpData"
+import { getPlayerItemSync, getPlayerSync, givePlayerItemSync, updatePlayerSync } from "../data/wdfpData"
+import getDatabase, { Database } from "../data"
 import { givePlayerCharacterSync } from "../lib/character"
 import { givePlayerEquipmentSync } from "../lib/equipment"
 import { ClientError } from "./utils"
@@ -90,6 +91,12 @@ const SpecialMails: Mail_[] = [
     },
 ]
 
+const getSpecialMails = () => process.env.STARPOINT_DEBUG_MAIL === "1" ? SpecialMails : []
+
+const validateQuantity = (number: number) => {
+    if (!Number.isSafeInteger(number) || number <= 0) throw new ClientError("Mail quantity must be a positive integer.")
+}
+
 let MailIdCounter = 10000000
 const CachedMails: Record<number, Mail_[]> = {}
 
@@ -99,6 +106,8 @@ const date2str = (date: Date) => {
 }
 
 export const SendMail = (player_id: number, mail: Mail) => {
+    validateQuantity(mail.number)
+    if (!getPlayerSync(player_id)) throw new ClientError("Player not found.")
     if (!CachedMails[player_id]) CachedMails[player_id] = []
     const mail_ = {
         "id": MailIdCounter++,
@@ -110,12 +119,13 @@ export const SendMail = (player_id: number, mail: Mail) => {
         ...mail,
     }
     CachedMails[player_id].push(mail_)
-    console.log(`Mail sent to player ${player_id}: ${JSON.stringify(mail_)}`)
+    console.log(`Mail queued for player ${player_id}`)
 }
 
-export const GetMails = (player_id: number) => SpecialMails.concat(CachedMails[player_id] || [])
+export const GetMails = (player_id: number) => getSpecialMails().concat(CachedMails[player_id] || [])
 
 const process_mail = (player_id: number, { type, type_id, number }: Mail) => {
+    validateQuantity(number)
     const player = getPlayerSync(player_id);
     if (!player) throw new ClientError(`Player not found: ${player_id}`)
     switch (type) {
@@ -148,7 +158,7 @@ const process_mail = (player_id: number, { type, type_id, number }: Mail) => {
         case MAIL_TYPE.CHARACTER:
             {
                 const characters: Map<number, Object> = new Map();
-                const items: Map<number, number> = new Map();
+                const items: Record<number, number> = {};
                 if (!type_id) throw new ClientError(`Mail type_id not found: ${type_id}`)
                 for (let i = 0; i < number; i++) {
                     const giveResult = givePlayerCharacterSync(player_id, type_id);
@@ -156,7 +166,7 @@ const process_mail = (player_id: number, { type, type_id, number }: Mail) => {
                         throw new ClientError(`Could not give player character: ${type_id} at ${i}`)
                     const giveItem = giveResult.item
                     if (giveItem !== undefined) {
-                        items.set(giveItem.id, (items.get(giveItem.id) ?? 0) + giveItem.count)
+                        items[giveItem.id] = getPlayerItemSync(player_id, giveItem.id) ?? 0
                     }
                     const existingCharacter = characters.get(type_id)
                     if (existingCharacter) {
@@ -199,66 +209,82 @@ const process_mail = (player_id: number, { type, type_id, number }: Mail) => {
             }
             break;
         default:
-            throw new Error(`Mail type not implemented: ${type}`)
+            throw new ClientError(`Mail type not implemented: ${type}`)
     }
 }
 
 export const ProcessMail = (player_id: number, mail_id: number) => {
-    let data: { [key: string]: any };
-    if (mail_id >= SPECIAL_MAIL_ID.START) {
-        const mail = SpecialMails.find(mail => mail.id === mail_id)
-        if (!mail) throw new ClientError(`Mail not found: ${mail_id}`)
-        data = process_mail(player_id, mail)
-    } else {
-        const mail = CachedMails[player_id]?.find(mail => mail.id === mail_id)
-        if (!mail) throw new ClientError(`Mail not found: ${mail_id}`)
-        data = process_mail(player_id, mail)
-        CachedMails[player_id] = CachedMails[player_id]?.filter(mail => mail.id !== mail_id)
-        if (CachedMails[player_id]?.length === 0) delete CachedMails[player_id]
+    if (!Number.isSafeInteger(mail_id) || mail_id <= 0) throw new ClientError("Invalid mail ID.")
+    const special = mail_id >= SPECIAL_MAIL_ID.START
+    const mail = (special ? getSpecialMails() : CachedMails[player_id])?.find(mail => mail.id === mail_id)
+    if (!mail) throw new ClientError(`Mail not found: ${mail_id}`)
+    const data = getDatabase(Database.WDFP_DATA).transaction(() => process_mail(player_id, mail))()
+    if (!special) {
+        CachedMails[player_id] = CachedMails[player_id].filter(mail => mail.id !== mail_id)
+        if (CachedMails[player_id].length === 0) delete CachedMails[player_id]
     }
+    const remaining = GetMails(player_id).length
     return {
         auto_sale_expired_mail: false,
         dispose_expired_mail: false,
-        total_count: SpecialMails.length + (CachedMails[player_id]?.length ?? 0),
+        total_count: remaining,
+        mail_arrived: remaining > 0,
         ...data,
     }
 }
 
-export const ProcessAllMails = (player_id: number) => {
-    const user_info: Map<string, number> = new Map();
-    const character_list: Map<number, Object> = new Map();
-    const item_list: Map<number, number> = new Map();
-    const equipment_list: Map<number, Object> = new Map();
-    for (const mail of (CachedMails[player_id] ?? [])) {
-        const result = process_mail(player_id, mail);
-        if (result.user_info) {
-            for (const [key, value] of Object.entries(result.user_info)) user_info.set(key, value);
-        }
-        if (result.character_list) {
-            for (const character of result.character_list) {
-                const { character_id } = (character as { character_id: number })
-                character_list.set(character_id, character)
+export const ProcessAllMails = (player_id: number, mail_ids?: number[]) => {
+    if (mail_ids !== undefined && (!Array.isArray(mail_ids) || mail_ids.some(id => !Number.isSafeInteger(id) || id <= 0))) {
+        throw new ClientError("Invalid mail IDs.")
+    }
+    const pending = CachedMails[player_id] ?? []
+    const requested = new Set(mail_ids ?? pending.map(mail => mail.id))
+    const selected = pending.filter(mail => requested.has(mail.id))
+    const res = getDatabase(Database.WDFP_DATA).transaction(() => {
+        const user_info: Map<string, number> = new Map();
+        const character_list: Map<number, Object> = new Map();
+        const item_list: Map<number, number> = new Map();
+        const equipment_list: Map<number, Object> = new Map();
+        for (const mail of selected) {
+            const result = process_mail(player_id, mail);
+            if (result.user_info) {
+                for (const [key, value] of Object.entries(result.user_info)) user_info.set(key, value);
+            }
+            if (result.character_list) {
+                for (const character of result.character_list) {
+                    const { character_id } = (character as { character_id: number })
+                    character_list.set(character_id, { ...character_list.get(character_id), ...character })
+                }
+            }
+            if (result.item_list) {
+                for (const [key, value] of Object.entries(result.item_list)) item_list.set(Number.parseInt(key), value);
+            }
+            if (result.equipment_list) {
+                for (const equipment of result.equipment_list) {
+                    const { equipment_id } = (equipment as { equipment_id: number })
+                    equipment_list.set(equipment_id, equipment)
+                }
             }
         }
-        if (result.item_list) {
-            for (const [key, value] of Object.entries(result.item_list)) item_list.set(Number.parseInt(key), value);
+        const result: { [key: string]: any } = {
+            mail_ids: selected.map(mail => mail.id),
+            deleted_mail_count: selected.length,
+            already_mail_count: requested.size - selected.length,
+            outdated_mail_count: 0,
+            dispose_expired_mail_count: 0,
+            auto_sale_expired_mail_count: 0,
+            max_overed_mail_count: 0,
+            auto_sale_expired_mail: false,
+            dispose_expired_mail: false,
         }
-        if (result.equipment_list) {
-            for (const equipment of result.equipment_list) {
-                const { equipment_id } = (equipment as { equipment_id: number })
-                equipment_list.set(equipment_id, equipment)
-            }
-        }
-    }
-    delete CachedMails[player_id]
-    const res: { [k: string]: any } = {
-        auto_sale_expired_mail: false,
-        dispose_expired_mail: false,
-        total_count: SpecialMails.length,
-    }
-    if (user_info.size > 0) res.user_info = Object.fromEntries(user_info);
-    if (character_list.size > 0) res.character_list = Array.from(character_list.values());
-    if (item_list.size > 0) res.item_list = Object.fromEntries(item_list);
-    if (equipment_list.size > 0) res.equipment_list = Array.from(equipment_list.values());
-    return res;
+        if (user_info.size > 0) result.user_info = Object.fromEntries(user_info);
+        if (character_list.size > 0) result.character_list = Array.from(character_list.values());
+        if (item_list.size > 0) result.item_list = Object.fromEntries(item_list);
+        if (equipment_list.size > 0) result.equipment_list = Array.from(equipment_list.values());
+        return result
+    })()
+    CachedMails[player_id] = pending.filter(mail => !requested.has(mail.id))
+    if (CachedMails[player_id].length === 0) delete CachedMails[player_id]
+    const remaining = GetMails(player_id).length
+    return { ...res, total_count: remaining, mail_arrived: remaining > 0 }
 }

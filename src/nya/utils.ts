@@ -1,7 +1,9 @@
 import { SessionType } from "../data/types";
 import { getAccountPlayers, getSession, getAccountFromPlayerIdSync, getAccountSessionsOfType } from "../data/wdfpData";
 
-export class ClientError extends Error { }
+export class ClientError extends Error {
+    readonly statusCode = 400;
+}
 
 export const viewer_id_to_player_id = async (viewerId: number) => {
     if (!viewerId) throw new ClientError(`Invalid viewerId.`);

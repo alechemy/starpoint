@@ -2,6 +2,13 @@ import { FastifyInstance, FastifyReply, FastifyRequest } from "fastify";
 import { setServerTime } from "../../utils";
 import { SendMail, MAIL_TYPE } from "../../nya/mail";
 import { getPlayerCharacterSync, updatePlayerCharacterSync } from "../../data/wdfpData";
+import { getCharacterDataSync } from "../../lib/assets";
+import { requireAdmin } from "../../nya/admin";
+import exStatus from "../../../assets/ex_status.json";
+import exAbility from "../../../assets/ex_ability.json";
+
+const statusIds = new Set([0, ...Object.values(exStatus).flat()]);
+const abilityIds = new Set([0, ...Object.values(exAbility).flat()]);
 
 interface TimeQuery {
     time: string | undefined
@@ -40,19 +47,15 @@ const routes = async (fastify: FastifyInstance) => {
         return reply.redirect(`/`);
     })
 
-    fastify.get("/exboost", async (request: FastifyRequest, reply: FastifyReply) => {
-        const q = request.query as { playerId?: string, characterId?: string, status?: string, ability1?: string, ability2?: string };
-        if (!q.playerId || !q.characterId || !q.status || !q.ability1 || !q.ability2) return reply.status(400).send({
+    fastify.post("/exboost", { onRequest: requireAdmin }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const q = (request.body ?? {}) as { playerId: number, characterId: number, status: number, ability1: number, ability2: number };
+        const { playerId, characterId, status } = q;
+        const ability = [q.ability1, q.ability2];
+        if (![playerId, characterId].every(id => Number.isSafeInteger(id) && id > 0)
+            || !Number.isSafeInteger(status) || !statusIds.has(status)
+            || ability.some(id => !Number.isSafeInteger(id) || !abilityIds.has(id))) return reply.status(400).send({
             "error": "Bad Request",
-            "message": "Invalid query parameters."
-        });
-        const playerId = parseInt(q.playerId);
-        const characterId = parseInt(q.characterId);
-        const status = parseInt(q.status);
-        const ability = [parseInt(q.ability1), parseInt(q.ability2)];
-        if (isNaN(playerId) || isNaN(characterId) || isNaN(status) || ability.some(isNaN)) return reply.status(400).send({
-            "error": "Bad Request",
-            "message": "Invalid query parameters."
+            "message": "Invalid player, character or EX-boost IDs."
         });
 
         const characterData = getPlayerCharacterSync(playerId, characterId)
@@ -74,18 +77,14 @@ const routes = async (fastify: FastifyInstance) => {
         });
     })
 
-    fastify.get("/give", async (request: FastifyRequest, reply: FastifyReply) => {
-        const q = request.query as { playerId: string, type: string, typeId: string, number?: string };
-        if (!q.playerId || !q.type || !q.typeId) return reply.status(400).send({
+    fastify.post("/give", { onRequest: requireAdmin }, async (request: FastifyRequest, reply: FastifyReply) => {
+        const q = (request.body ?? {}) as { playerId: number, type: string, typeId: number, number?: number };
+        const { playerId, typeId } = q;
+        const number = q.number ?? 1;
+        if (![playerId, typeId, number].every(value => Number.isSafeInteger(value) && value > 0)
+            || (q.type === "chara" && getCharacterDataSync(typeId) === null)) return reply.status(400).send({
             "error": "Bad Request",
-            "message": "Invalid query parameters."
-        });
-        const playerId = parseInt(q.playerId);
-        const typeId = parseInt(q.typeId);
-        const number = q.number ? parseInt(q.number) : 1;
-        if (isNaN(playerId) || isNaN(typeId) || isNaN(number)) return reply.status(400).send({
-            "error": "Bad Request",
-            "message": "Invalid query parameters."
+            "message": "Invalid grant parameters."
         });
 
         switch (q.type) {

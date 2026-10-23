@@ -5,8 +5,9 @@ import { onPlayerRankUp } from "./delegates";
 import { bisect } from "./utils";
 
 export const getRankByPt = (rankPoint: number) => {
-    const i_rank = bisect(player_rank_data, rankPoint, (el) => el.total_rp);
-    return player_rank_data[i_rank >= player_rank_data.length ? player_rank_data.length - 1 : i_rank];
+    const next = bisect(player_rank_data, rankPoint, (el) => el.total_rp);
+    const reached = next < player_rank_data.length && player_rank_data[next].total_rp <= rankPoint ? next : next - 1;
+    return player_rank_data[Math.max(0, Math.min(reached, player_rank_data.length - 1))];
 }
 
 export const getRank = (rank: number) => player_rank_data[rank - 1]; // rank is 1-indexed
@@ -42,15 +43,13 @@ export const commitPlayer = (player: Player) => {
 }
 
 export const givePlayerRankPoint = (playerData: Player, rankPoint: number) => {
-    // modify playerData in place
     if (!playerData) throw new Error("Player not found");
     const currentRank = getRankByPt(playerData.rankPoint);
-    // playerData.rankPoint += rankPoint
     modifyPlayer(playerData, 'rankPoint', playerData.rankPoint + rankPoint);
-    if (currentRank.rank < player_rank_data.length && playerData.rankPoint >= currentRank.total_rp) {
-        const nextRank = getRank(currentRank.rank + 1);
-        // playerData.stamina = nextRank.stamina;
-        modifyPlayer(playerData, 'stamina', nextRank.stamina);
+    const reachedRank = getRankByPt(playerData.rankPoint);
+    for (let level = currentRank.rank + 1; level <= reachedRank.rank; level++) {
+        const nextRank = getRank(level);
+        modifyPlayer(playerData, 'stamina', playerData.stamina + nextRank.stamina);
         onPlayerRankUp.call(playerData, nextRank.rank);
     }
     return playerData;

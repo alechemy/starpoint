@@ -67,10 +67,15 @@
                     Upload Save
                 </button>
             </form>
+            <section class="mt-5 flex flex-col gap-2">
+                <label for="admin-token">Admin token for grant and EX-boost tools</label>
+                <input id="admin-token" type="password" autocomplete="off" spellcheck="false" />
+                <p>These tools require STARPOINT_ADMIN_TOKEN on the server. The token is not saved.</p>
+            </section>
             <form
                 class="mt-5 flex flex-col items-center justify-center p-5 border border-outline-variant bg-surface-container rounded-3xl w-full gap-5"
-                method="get" action="/api/server/give" onsubmit="document.getElementById('response-give').style.display = 'block';return true;" target="response-give">
-                <iframe id="response-give" name="response-give" style="height: 5rem; width: 100%;display:none;"></iframe>
+                method="post" action="/api/server/give" onsubmit="submitAdminForm(event)" data-response="response-give">
+                <output id="response-give" role="status" aria-live="polite"></output>
                 <div class="flex flex-row items-center justify-center">
                     <span>Give</h3>
                         <input id="playerId" name="playerId" value="{{playerId}}" type="hidden" />
@@ -90,8 +95,8 @@
             </form>
             <form
                 class="mt-5 flex flex-col items-center justify-center p-5 border border-outline-variant bg-surface-container rounded-3xl w-full gap-5"
-                method="get" action="/api/server/exboost" onsubmit="document.getElementById('response-exboost').style.display = 'block';return true;" target="response-exboost">
-                <iframe id="response-exboost" name="response-exboost" style="height: 5rem; width: 100%;display:none;"></iframe>
+                method="post" action="/api/server/exboost" onsubmit="submitAdminForm(event)" data-response="response-exboost">
+                <output id="response-exboost" role="status" aria-live="polite"></output>
                 <div class="flex flex-row items-center justify-center">
                     <input name="playerId" value="{{playerId}}" type="hidden" />
                     <span>Set Charater</h3>
@@ -110,6 +115,33 @@
             </form>
         </article>
     </div>
+    <script>
+        async function submitAdminForm(event) {
+            event.preventDefault();
+            const form = event.currentTarget;
+            const output = document.getElementById(form.dataset.response);
+            const token = document.getElementById('admin-token').value;
+            if (!token) {
+                output.textContent = 'Enter the admin token first.';
+                return;
+            }
+            const body = Object.fromEntries(new FormData(form));
+            for (const key of Object.keys(body)) {
+                if (key !== 'type') body[key] = Number(body[key]);
+            }
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
+                    body: JSON.stringify(body)
+                });
+                const result = await response.json();
+                output.textContent = result.message ?? result.error ?? `HTTP ${response.status}`;
+            } catch {
+                output.textContent = 'Request failed.';
+            }
+        }
+    </script>
 </body>
 <style>
     .my-select {
